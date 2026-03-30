@@ -39,8 +39,8 @@ I made these changes to reduce hidden coupling and avoid a future bottleneck whe
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+One tradeoff is that conflict detection currently checks only exact same due timestamps instead of full duration overlap windows.
+This is reasonable for the current PawPal+ scope because it keeps the algorithm simple, transparent, and fast for small daily task lists, while still catching the most obvious scheduling collisions that matter to a busy owner.
 
 ---
 

@@ -36,8 +36,8 @@ def build_demo_data() -> tuple[Owner, Scheduler]:
 
 	dog.add_task(
 		Task(
-			description="Morning walk",
-			due_at=datetime.combine(today, time(hour=8, minute=0)),
+			description="Lunch walk",
+			due_at=datetime.combine(today, time(hour=12, minute=0)),
 			frequency="daily",
 			priority=3,
 			duration_minutes=25,
@@ -46,12 +46,22 @@ def build_demo_data() -> tuple[Owner, Scheduler]:
 	)
 	dog.add_task(
 		Task(
-			description="Lunch feeding",
-			due_at=datetime.combine(today, time(hour=12, minute=30)),
+			description="Morning feeding",
+			due_at=datetime.combine(today, time(hour=8, minute=30)),
 			frequency="daily",
 			priority=2,
 			duration_minutes=10,
 			category="feeding",
+		)
+	)
+	dog.add_task(
+		Task(
+			description="Noon enrichment",
+			due_at=datetime.combine(today, time(hour=12, minute=0)),
+			frequency="weekly",
+			priority=1,
+			duration_minutes=20,
+			category="enrichment",
 		)
 	)
 	cat.add_task(
@@ -64,6 +74,16 @@ def build_demo_data() -> tuple[Owner, Scheduler]:
 			category="meds",
 		)
 	)
+	cat.add_task(
+		Task(
+			description="Noon feeding",
+			due_at=datetime.combine(today, time(hour=12, minute=0)),
+			frequency="daily",
+			priority=3,
+			duration_minutes=10,
+			category="feeding",
+		)
+	)
 
 	scheduler = Scheduler(owner=owner)
 	return owner, scheduler
@@ -71,6 +91,37 @@ def build_demo_data() -> tuple[Owner, Scheduler]:
 
 def print_todays_schedule(owner: Owner, scheduler: Scheduler) -> None:
 	today = datetime.now().date()
+
+	print("\n=== All Tasks (Unsorted Input Order) ===")
+	for task in owner.get_all_tasks():
+		print(f"[{task.pet_name}] {task.description} at {task.due_at.strftime('%H:%M')}")
+
+	print("\n=== Sorted By Time ===")
+	for task in scheduler.sort_by_time():
+		print(f"[{task.pet_name}] {task.description} at {task.due_at.strftime('%H:%M')}")
+
+	print("\n=== Filter: Incomplete Tasks For Mochi ===")
+	for task in scheduler.filter_tasks(pet_name="Mochi", completed=False, target_date=today):
+		print(f"[{task.pet_name}] {task.description} at {task.due_at.strftime('%H:%M')}")
+
+	conflict_warnings = scheduler.detect_conflicts()
+	if conflict_warnings:
+		print("\n=== Conflict Warnings ===")
+		for warning in conflict_warnings:
+			print(f"- {warning}")
+
+	# Demonstrate recurring task behavior.
+	mochi = next((pet for pet in owner.pets if pet.pet_name == "Mochi"), None)
+	if mochi is not None:
+		mochi.mark_task_completed("Morning feeding")
+		recurring_candidates = [task for task in mochi.tasks if task.description == "Morning feeding" and not task.completed]
+		if recurring_candidates:
+			next_due = min(task.due_at for task in recurring_candidates)
+			print(
+				"\nRecurring task created: "
+				f"Morning feeding rescheduled for {next_due.strftime('%Y-%m-%d %H:%M')}"
+			)
+
 	plan = scheduler.build_daily_plan(today)
 
 	print("\\n=== PawPal+ Today's Schedule ===")

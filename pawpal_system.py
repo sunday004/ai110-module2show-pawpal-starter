@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 
@@ -116,8 +116,11 @@ class Pet:
 	def mark_task_completed(self, description: str) -> bool:
 		"""Mark the first matching task as completed and report success."""
 		for task in self.tasks:
-			if task.description == description:
+			if task.description == description and not task.completed:
 				task.mark_completed()
+				next_task = task.next_occurrence()
+				if next_task is not None:
+					self.add_task(next_task)
 				return True
 		return False
 
@@ -175,6 +178,28 @@ class Task:
 		completion_penalty = -100.0 if self.completed else 0.0
 		return (self.priority * 10.0) + time_score + completion_penalty
 
+	def next_occurrence(self) -> Task | None:
+		"""Create the next scheduled instance for daily or weekly tasks."""
+		frequency = self.frequency.strip().lower()
+		if frequency == "daily":
+			next_due = self.due_at + timedelta(days=1)
+		elif frequency == "weekly":
+			next_due = self.due_at + timedelta(days=7)
+		else:
+			return None
+
+		return Task(
+			description=self.description,
+			due_at=next_due,
+			frequency=self.frequency,
+			completed=False,
+			priority=self.priority,
+			duration_minutes=self.duration_minutes,
+			category=self.category,
+			notes=self.notes,
+			pet_name=self.pet_name,
+		)
+
 
 class Scheduler:
 	"""Builds and explains a daily task plan."""
@@ -201,6 +226,50 @@ class Scheduler:
 		"""Get all tasks scheduled for a specific date across pets."""
 		self.refresh_task_cache()
 		return [task for task in self.task_list if task.is_due_today(target_date)]
+
+	def sort_by_time(self, tasks: list[Task] | None = None) -> list[Task]:
+		"""Sort tasks by due datetime in ascending order."""
+		items = tasks if tasks is not None else self.refresh_task_cache()
+		return sorted(items, key=lambda task: task.due_at)
+
+	def filter_tasks(
+		self,
+		pet_name: str | None = None,
+		completed: bool | None = None,
+		target_date: date | None = None,
+	) -> list[Task]:
+		"""Filter tasks by pet name, completion status, and/or due date."""
+		tasks = self.refresh_task_cache()
+
+		if pet_name is not None:
+			tasks = [task for task in tasks if task.pet_name == pet_name]
+		if completed is not None:
+			tasks = [task for task in tasks if task.completed == completed]
+		if target_date is not None:
+			tasks = [task for task in tasks if task.is_due_today(target_date)]
+
+		return tasks
+
+	def detect_conflicts(self, tasks: list[Task] | None = None) -> list[str]:
+		"""Return readable warnings for tasks sharing the same due time."""
+		items = self.sort_by_time(tasks if tasks is not None else self.refresh_task_cache())
+		warnings: list[str] = []
+		tasks_by_due: dict[datetime, list[Task]] = {}
+
+		for task in items:
+			tasks_by_due.setdefault(task.due_at, []).append(task)
+
+		for due_at, group in tasks_by_due.items():
+			if len(group) < 2:
+				continue
+			pet_names = sorted({task.pet_name or "unknown" for task in group})
+			descriptions = ", ".join(task.description for task in group)
+			warnings.append(
+				f"Conflict at {due_at.strftime('%Y-%m-%d %H:%M')}: "
+				f"{descriptions} (pets: {', '.join(pet_names)})"
+			)
+
+		return warnings
 
 	def rank_tasks(self, tasks: list[Task]) -> list[Task]:
 		"""Sort tasks by completion, priority, due time, and duration."""
