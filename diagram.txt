@@ -1,0 +1,51 @@
+classDiagram
+direction LR
+
+class Owner {
+  +String ownerName
+  +int availableMinutesPerDay
+  +String[] preferredTaskOrder
+  +bool medicationReminderEnabled
+  +updatePreferences(preferences)
+  +setDailyAvailability(minutes)
+  +getProfileSummary() String
+}
+
+class Pet {
+  +String petName
+  +String species
+  +int age
+  +String energyLevel
+  +String specialNeeds
+  +updatePetInfo(info)
+  +getCareNeeds() String
+  +getPetSummary() String
+}
+
+class Task {
+  +String taskName
+  +String category
+  +int durationMinutes
+  +int priority
+  +String dueWindow
+  +String frequency
+  +String notes
+  +editTask(details)
+  +isDueToday(date) bool
+  +markCompleted()
+  +estimateUrgencyScore() float
+}
+
+class Scheduler {
+  +Task[] taskList
+  +rankTasks(tasks) Task[]
+  +buildDailyPlan(date) Task[]
+  +resolveConflicts(tasks) Task[]
+  +explainSelectionLogic() String
+}
+
+Owner "1" --> "0..*" Pet : owns
+Pet "1" --> "0..*" Task : has care tasks
+Scheduler --> Owner : uses preferences
+Scheduler --> Pet : uses pet needs
+Scheduler --> Task : ranks & schedules
