@@ -52,3 +52,22 @@ PawPal+ now includes lightweight algorithmic behaviors that make planning more i
 - Basic conflict detection: the scheduler detects exact-time collisions and returns warning messages instead of failing.
 
 These features are demonstrated in the terminal demo (`main.py`) and used by the scheduling logic in `pawpal_system.py`.
+
+## Testing PawPal+
+
+Run the automated tests with:
+
+```bash
+python -m pytest
+```
+
+Current tests cover:
+
+- Task completion state updates.
+- Adding tasks to a pet.
+- Scheduler time sorting correctness.
+- Recurring task creation after daily task completion.
+- Conflict detection for duplicate due times.
+- Filtering by pet, completion status, and date.
+
+Confidence Level: ★★★★☆ (4/5)

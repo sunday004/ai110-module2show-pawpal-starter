@@ -142,6 +142,31 @@ else:
 
 all_tasks = owner.get_all_tasks()
 if all_tasks:
+    scheduler = Scheduler(owner=owner)
+
+    st.markdown("### Smart Task Views")
+    view_col1, view_col2, view_col3 = st.columns(3)
+    with view_col1:
+        filter_pet = st.selectbox("Filter by pet", ["All"] + [pet.pet_name for pet in owner.pets])
+    with view_col2:
+        filter_status = st.selectbox("Filter by status", ["All", "Incomplete", "Completed"])
+    with view_col3:
+        filter_date = st.date_input("Filter by date", value=date.today())
+
+    pet_name_filter = None if filter_pet == "All" else filter_pet
+    status_filter = None
+    if filter_status == "Incomplete":
+        status_filter = False
+    elif filter_status == "Completed":
+        status_filter = True
+
+    filtered_tasks = scheduler.filter_tasks(
+        pet_name=pet_name_filter,
+        completed=status_filter,
+        target_date=filter_date,
+    )
+    sorted_filtered_tasks = scheduler.sort_by_time(filtered_tasks)
+
     st.write("Current tasks:")
     st.table(
         [
@@ -156,6 +181,48 @@ if all_tasks:
             for task in all_tasks
         ]
     )
+
+    st.write("Sorted & filtered tasks:")
+    if sorted_filtered_tasks:
+        st.table(
+            [
+                {
+                    "pet": task.pet_name,
+                    "description": task.description,
+                    "due": task.due_at.strftime("%Y-%m-%d %H:%M"),
+                    "priority": task.priority,
+                    "duration_minutes": task.duration_minutes,
+                    "completed": task.completed,
+                }
+                for task in sorted_filtered_tasks
+            ]
+        )
+    else:
+        st.info("No tasks matched your selected filters.")
+
+    conflicts = scheduler.detect_conflicts()
+    if conflicts:
+        st.warning("Task conflict warnings detected:")
+        for warning in conflicts:
+            st.warning(warning)
+    else:
+        st.success("No task conflicts detected.")
+
+    st.markdown("### Mark Task Complete")
+    incomplete_tasks = [task for task in all_tasks if not task.completed]
+    if incomplete_tasks:
+        task_choice_labels = [f"[{task.pet_name}] {task.description} ({task.due_at.strftime('%Y-%m-%d %H:%M')})" for task in incomplete_tasks]
+        selected_label = st.selectbox("Select task to complete", task_choice_labels)
+        if st.button("Mark selected task complete"):
+            selected_index = task_choice_labels.index(selected_label)
+            chosen_task = incomplete_tasks[selected_index]
+            chosen_pet = get_pet_by_name(owner, chosen_task.pet_name or "")
+            if chosen_pet and chosen_pet.mark_task_completed(chosen_task.description):
+                st.success("Task marked complete. Recurring tasks are auto-scheduled when applicable.")
+            else:
+                st.error("Could not mark task complete.")
+    else:
+        st.info("No incomplete tasks available to mark complete.")
 else:
     st.info("No tasks yet. Add one above.")
 
@@ -183,5 +250,11 @@ if st.button("Generate schedule"):
             ]
         )
         st.caption(scheduler.explain_selection_logic())
+
+        schedule_conflicts = scheduler.detect_conflicts(plan)
+        if schedule_conflicts:
+            st.warning("Conflicts found in today's plan:")
+            for warning in schedule_conflicts:
+                st.warning(warning)
     else:
         st.warning("No tasks were eligible for today's schedule.")
