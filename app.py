@@ -4,6 +4,8 @@ import streamlit as st
 
 from pawpal_system import Owner, Pet, Scheduler, Task
 
+DATA_FILE = "data.json"
+
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
@@ -30,12 +32,24 @@ def get_pet_by_name(owner: Owner, pet_name: str) -> Pet | None:
 
 # Persist the Owner instance across Streamlit reruns.
 if "owner" not in st.session_state:
-    st.session_state.owner = Owner(
-        owner_name="Jordan",
-        available_minutes_per_day=90,
-        preferred_task_order=["meds", "feeding", "walk", "enrichment"],
-        medication_reminder_enabled=True,
-    )
+    try:
+        st.session_state.owner = Owner.load_from_json(DATA_FILE)
+        st.success("Loaded saved data from data.json")
+    except FileNotFoundError:
+        st.session_state.owner = Owner(
+            owner_name="Jordan",
+            available_minutes_per_day=90,
+            preferred_task_order=["meds", "feeding", "walk", "enrichment"],
+            medication_reminder_enabled=True,
+        )
+    except Exception as exc:
+        st.warning(f"Could not load saved data: {exc}. Starting with a new profile.")
+        st.session_state.owner = Owner(
+            owner_name="Jordan",
+            available_minutes_per_day=90,
+            preferred_task_order=["meds", "feeding", "walk", "enrichment"],
+            medication_reminder_enabled=True,
+        )
 
 owner: Owner = st.session_state.owner
 
@@ -75,6 +89,7 @@ if owner_submitted:
     owner.owner_name = owner_name
     owner.set_daily_availability(int(available_minutes))
     owner.update_preferences({"medication_reminder_enabled": reminders})
+    owner.save_to_json(DATA_FILE)
     st.success("Owner profile updated.")
 
 st.divider()
@@ -99,6 +114,7 @@ if pet_submitted:
                 special_needs=special_needs,
             )
         )
+        owner.save_to_json(DATA_FILE)
         st.success(f"Added pet: {pet_name}")
     except ValueError as exc:
         st.error(str(exc))
@@ -136,6 +152,7 @@ if owner.pets:
                     notes=notes,
                 )
             )
+            owner.save_to_json(DATA_FILE)
             st.success(f"Added task to {selected_pet_name}: {description}")
 else:
     st.info("Add at least one pet before creating tasks.")
@@ -218,6 +235,7 @@ if all_tasks:
             chosen_task = incomplete_tasks[selected_index]
             chosen_pet = get_pet_by_name(owner, chosen_task.pet_name or "")
             if chosen_pet and chosen_pet.mark_task_completed(chosen_task.description):
+                owner.save_to_json(DATA_FILE)
                 st.success("Task marked complete. Recurring tasks are auto-scheduled when applicable.")
             else:
                 st.error("Could not mark task complete.")
@@ -230,6 +248,20 @@ st.divider()
 
 st.subheader("Build Schedule")
 st.caption("This now uses Scheduler to generate a real plan for today.")
+
+slot_col1, slot_col2 = st.columns([2, 1])
+with slot_col1:
+    requested_minutes = st.number_input(
+        "Find next available slot (minutes)", min_value=5, max_value=180, value=30
+    )
+with slot_col2:
+    if st.button("Suggest slot"):
+        scheduler = Scheduler(owner=owner)
+        next_slot = scheduler.find_next_available_slot(int(requested_minutes), date.today())
+        if next_slot:
+            st.info(f"Next available slot: {next_slot.strftime('%Y-%m-%d %I:%M %p')}")
+        else:
+            st.warning("No available slot found for that duration today.")
 
 if st.button("Generate schedule"):
     scheduler = Scheduler(owner=owner)

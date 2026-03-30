@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from pawpal_system import Owner, Pet, Scheduler, Task
 
@@ -149,3 +150,55 @@ def test_filter_by_pet_and_completion_status() -> None:
 
 	assert len(filtered) == 1
 	assert filtered[0].description == "Dog breakfast"
+
+
+def test_find_next_available_slot_returns_earliest_gap() -> None:
+	"""Next slot finder should return the first valid free time window."""
+	owner, dog, _ = _build_owner_with_two_pets()
+
+	dog.add_task(
+		Task(
+			description="Morning walk",
+			due_at=datetime(2026, 3, 30, 8, 0),
+			frequency="daily",
+			duration_minutes=30,
+		)
+	)
+	dog.add_task(
+		Task(
+			description="Midday feeding",
+			due_at=datetime(2026, 3, 30, 12, 0),
+			frequency="daily",
+			duration_minutes=20,
+		)
+	)
+
+	scheduler = Scheduler(owner=owner)
+	slot = scheduler.find_next_available_slot(45, date(2026, 3, 30))
+
+	assert slot is not None
+	assert slot == datetime(2026, 3, 30, 6, 0)
+
+
+def test_owner_save_and_load_json_round_trip(tmp_path: Path) -> None:
+	"""Saving then loading should preserve owner/pet/task structure."""
+	owner, dog, _ = _build_owner_with_two_pets()
+	dog.add_task(
+		Task(
+			description="Dinner",
+			due_at=datetime(2026, 3, 30, 18, 0),
+			frequency="daily",
+			priority=3,
+		)
+	)
+
+	data_file = tmp_path / "owner_data.json"
+	owner.save_to_json(str(data_file))
+
+	loaded = Owner.load_from_json(str(data_file))
+
+	assert loaded.owner_name == owner.owner_name
+	assert len(loaded.pets) == 2
+	loaded_mochi = next(pet for pet in loaded.pets if pet.pet_name == "Mochi")
+	assert len(loaded_mochi.tasks) == 1
+	assert loaded_mochi.tasks[0].description == "Dinner"

@@ -72,14 +72,36 @@ PawPal+ now includes lightweight algorithmic behaviors that make planning more i
 - Filtering by status/pet: tasks can be filtered by pet name, completion state, and date to support focused views.
 - Recurring task automation: completing a daily or weekly task auto-creates the next occurrence using date offsets.
 - Basic conflict detection: the scheduler detects exact-time collisions and returns warning messages instead of failing.
+- Next available slot suggestion: the scheduler can recommend the earliest open time block for a new task duration.
+- JSON persistence: owner, pets, and tasks are saved to `data.json` and loaded when the app starts.
 
 These features are demonstrated in the terminal demo (`main.py`) and used by the scheduling logic in `pawpal_system.py`.
 
+## Stretch Features Implemented
+
+1. Advanced Algorithmic Capability
+- Added `Scheduler.find_next_available_slot(...)` to scan the day and return the first gap large enough for a requested task duration.
+- The Streamlit UI exposes this via a "Suggest slot" action.
+
+2. Data Persistence Layer
+- Added `Owner.save_to_json(...)` and `Owner.load_from_json(...)` for full system persistence.
+- The app now loads from `data.json` at startup and saves automatically after profile, pet, and task changes.
+
+### Agent Mode Notes
+
+Agent Mode was used to plan these multi-file changes before implementation. The planning output helped define method signatures (`find_next_available_slot`, `save_to_json`, `load_from_json`), JSON schema decisions, and UI integration points to keep updates consistent across backend and Streamlit layers.
+
 ## 📸 Demo
 
-<a href="/course_images/ai110/pawpal_streamlit_demo.png" target="_blank"><img src='/course_images/ai110/pawpal_streamlit_demo.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+### Streamlit Screenshots
 
-Add your final Streamlit screenshot at `/course_images/ai110/pawpal_streamlit_demo.png` to render this preview in your submission.
+![PawPal Demo 1](Screenshot%202026-03-30%20015845.png)
+
+![PawPal Demo 2](Screenshot%202026-03-30%20015902.png)
+
+![PawPal Demo 3](Screenshot%202026-03-30%20015912.png)
+
+![PawPal Demo 4](image.png)
 
 ## Testing PawPal+
 

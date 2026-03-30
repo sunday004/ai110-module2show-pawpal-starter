@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 
@@ -65,6 +67,61 @@ class Owner:
 		for pet in self.pets:
 			due_tasks.extend(pet.get_due_tasks(target_date))
 		return due_tasks
+
+	def to_dict(self) -> dict[str, Any]:
+		"""Serialize owner state, pets, and tasks to a plain dictionary."""
+		return {
+			"owner_name": self.owner_name,
+			"available_minutes_per_day": self.available_minutes_per_day,
+			"preferred_task_order": self.preferred_task_order,
+			"medication_reminder_enabled": self.medication_reminder_enabled,
+			"pets": [pet.to_dict() for pet in self.pets],
+		}
+
+	def save_to_json(self, file_path: str = "data.json") -> None:
+		"""Save owner, pets, and tasks to JSON for persistence between runs."""
+		if not file_path.strip():
+			raise ValueError("file_path cannot be empty.")
+
+		path = Path(file_path)
+		if path.parent and str(path.parent) != ".":
+			path.parent.mkdir(parents=True, exist_ok=True)
+
+		with path.open("w", encoding="utf-8") as outfile:
+			json.dump(self.to_dict(), outfile, indent=2)
+
+	@classmethod
+	def load_from_json(cls, file_path: str = "data.json") -> Owner:
+		"""Load owner, pets, and tasks from a JSON file."""
+		path = Path(file_path)
+		if not path.exists():
+			raise FileNotFoundError(f"Data file not found: {file_path}")
+
+		with path.open("r", encoding="utf-8") as infile:
+			payload = json.load(infile)
+
+		required = {
+			"owner_name",
+			"available_minutes_per_day",
+			"preferred_task_order",
+			"medication_reminder_enabled",
+			"pets",
+		}
+		missing = [key for key in required if key not in payload]
+		if missing:
+			raise ValueError(f"Missing required owner fields: {', '.join(missing)}")
+
+		owner = cls(
+			owner_name=str(payload["owner_name"]),
+			available_minutes_per_day=int(payload["available_minutes_per_day"]),
+			preferred_task_order=list(payload["preferred_task_order"]),
+			medication_reminder_enabled=bool(payload["medication_reminder_enabled"]),
+		)
+
+		for pet_payload in payload.get("pets", []):
+			owner.add_pet(Pet.from_dict(pet_payload))
+
+		return owner
 
 
 @dataclass
@@ -132,6 +189,38 @@ class Pet:
 			if task.is_due_today(target_date) and not task.completed
 		]
 
+	def to_dict(self) -> dict[str, Any]:
+		"""Serialize pet fields and all attached tasks to dictionary form."""
+		return {
+			"pet_name": self.pet_name,
+			"species": self.species,
+			"age": self.age,
+			"energy_level": self.energy_level,
+			"special_needs": self.special_needs,
+			"tasks": [task.to_dict() for task in self.tasks],
+		}
+
+	@classmethod
+	def from_dict(cls, payload: dict[str, Any]) -> Pet:
+		"""Rebuild a pet instance from dictionary payload."""
+		required = {"pet_name", "species", "age", "energy_level", "special_needs", "tasks"}
+		missing = [key for key in required if key not in payload]
+		if missing:
+			raise ValueError(f"Missing required pet fields: {', '.join(missing)}")
+
+		pet = cls(
+			pet_name=str(payload["pet_name"]),
+			species=str(payload["species"]),
+			age=int(payload["age"]),
+			energy_level=str(payload["energy_level"]),
+			special_needs=str(payload["special_needs"]),
+		)
+
+		for task_payload in payload.get("tasks", []):
+			pet.add_task(Task.from_dict(task_payload))
+
+		return pet
+
 
 @dataclass
 class Task:
@@ -198,6 +287,55 @@ class Task:
 			category=self.category,
 			notes=self.notes,
 			pet_name=self.pet_name,
+		)
+
+	def to_dict(self) -> dict[str, Any]:
+		"""Serialize task including due datetime in ISO-8601 format."""
+		return {
+			"description": self.description,
+			"due_at": self.due_at.isoformat(),
+			"frequency": self.frequency,
+			"completed": self.completed,
+			"priority": self.priority,
+			"duration_minutes": self.duration_minutes,
+			"category": self.category,
+			"notes": self.notes,
+			"pet_name": self.pet_name,
+		}
+
+	@classmethod
+	def from_dict(cls, payload: dict[str, Any]) -> Task:
+		"""Rebuild a task instance from a dictionary payload."""
+		required = {
+			"description",
+			"due_at",
+			"frequency",
+			"completed",
+			"priority",
+			"duration_minutes",
+			"category",
+			"notes",
+			"pet_name",
+		}
+		missing = [key for key in required if key not in payload]
+		if missing:
+			raise ValueError(f"Missing required task fields: {', '.join(missing)}")
+
+		try:
+			due_at = datetime.fromisoformat(str(payload["due_at"]))
+		except ValueError as exc:
+			raise ValueError(f"Invalid task due_at datetime: {payload['due_at']}") from exc
+
+		return cls(
+			description=str(payload["description"]),
+			due_at=due_at,
+			frequency=str(payload["frequency"]),
+			completed=bool(payload["completed"]),
+			priority=int(payload["priority"]),
+			duration_minutes=int(payload["duration_minutes"]),
+			category=str(payload["category"]),
+			notes=str(payload["notes"]),
+			pet_name=str(payload["pet_name"]) if payload["pet_name"] is not None else None,
 		)
 
 
@@ -320,3 +458,44 @@ class Scheduler:
 	def explain_selection_logic(self) -> str:
 		"""Return a human-readable summary of the latest planning decision."""
 		return self._last_explanation
+
+	def find_next_available_slot(
+		self,
+		duration_minutes: int,
+		start_from_date: date,
+		day_start_hour: int = 6,
+		day_end_hour: int = 22,
+	) -> datetime | None:
+		"""Find the earliest available slot on a date for the requested duration."""
+		if duration_minutes <= 0:
+			raise ValueError("duration_minutes must be greater than zero.")
+
+		tasks_for_day = self.sort_by_time(self.get_tasks_for_date(start_from_date))
+		day_start = datetime.combine(start_from_date, datetime.min.time()).replace(hour=day_start_hour)
+		day_end = datetime.combine(start_from_date, datetime.min.time()).replace(hour=day_end_hour)
+
+		if day_start >= day_end:
+			raise ValueError("day_start_hour must be earlier than day_end_hour.")
+
+		required_delta = timedelta(minutes=duration_minutes)
+		cursor = day_start
+
+		if not tasks_for_day:
+			if cursor + required_delta <= day_end:
+				return cursor
+			return None
+
+		for task in tasks_for_day:
+			task_start = task.due_at
+			task_end = task_start + timedelta(minutes=task.duration_minutes)
+
+			if task_start - cursor >= required_delta:
+				return cursor
+
+			if task_end > cursor:
+				cursor = task_end
+
+		if day_end - cursor >= required_delta:
+			return cursor
+
+		return None
