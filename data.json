@@ -1,0 +1,63 @@
+{
+  "owner_name": "Sunday",
+  "available_minutes_per_day": 90,
+  "preferred_task_order": [
+    "meds",
+    "feeding",
+    "walk",
+    "enrichment"
+  ],
+  "medication_reminder_enabled": true,
+  "pets": [
+    {
+      "pet_name": "Mochi",
+      "species": "dog",
+      "age": 3,
+      "energy_level": "medium",
+      "special_needs": "",
+      "tasks": [
+        {
+          "description": "Morning walk",
+          "due_at": "2026-03-30T08:00:00",
+          "frequency": "daily",
+          "completed": true,
+          "priority": 2,
+          "duration_minutes": 20,
+          "category": "walk",
+          "notes": "",
+          "pet_name": "Mochi"
+        },
+        {
+          "description": "Morning walk",
+          "due_at": "2026-03-30T08:00:00",
+          "frequency": "one-time",
+          "completed": false,
+          "priority": 2,
+          "duration_minutes": 60,
+          "category": "meds",
+          "notes": "",
+          "pet_name": "Mochi"
+        },
+        {
+          "description": "Morning walk",
+          "due_at": "2026-03-31T08:00:00",
+          "frequency": "daily",
+          "completed": false,
+          "priority": 2,
+          "duration_minutes": 20,
+          "category": "walk",
+          "notes": "",
+          "pet_name": "Mochi"
+        }
+      ]
+    },
+    {
+      "pet_name": "Tochi",
+      "species": "cat",
+      "age": 2,
+      "energy_level": "high",
+      "special_needs": "",
+      "tasks": []
+    }
+  ]
+}

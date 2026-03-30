@@ -102,6 +102,7 @@ Agent Mode was used to plan these multi-file changes before implementation. The 
 ![PawPal Demo 3](Screenshot%202026-03-30%20015912.png)
 
 ![PawPal Demo 4](image.png)
+![Demo 5](image-1.png)
 
 ## Testing PawPal+
 
