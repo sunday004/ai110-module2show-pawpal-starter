@@ -22,6 +22,16 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+- Owner and pet profile management in the Streamlit UI.
+- Task creation with due date/time, priority, duration, category, and frequency.
+- Time-based scheduling that selects tasks within owner daily availability.
+- Sorting by due time for clear chronological planning.
+- Filtering by pet, completion status, and selected date.
+- Conflict warnings for tasks scheduled at the exact same time.
+- Daily/weekly recurrence that auto-creates the next task occurrence on completion.
+
 ## Getting started
 
 ### Setup
@@ -30,6 +40,18 @@ Your final app should:
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+### Run the App
+
+```bash
+streamlit run app.py
+```
+
+### Run the CLI Demo
+
+```bash
+python main.py
 ```
 
 ### Suggested workflow
@@ -52,6 +74,12 @@ PawPal+ now includes lightweight algorithmic behaviors that make planning more i
 - Basic conflict detection: the scheduler detects exact-time collisions and returns warning messages instead of failing.
 
 These features are demonstrated in the terminal demo (`main.py`) and used by the scheduling logic in `pawpal_system.py`.
+
+## 📸 Demo
+
+<a href="/course_images/ai110/pawpal_streamlit_demo.png" target="_blank"><img src='/course_images/ai110/pawpal_streamlit_demo.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+Add your final Streamlit screenshot at `/course_images/ai110/pawpal_streamlit_demo.png` to render this preview in your submission.
 
 ## Testing PawPal+
 

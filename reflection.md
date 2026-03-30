@@ -34,8 +34,9 @@ I made these changes to reduce hidden coupling and avoid a future bottleneck whe
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers due date/time, priority score, completion status, and the owner's daily available minutes.
+I prioritized these constraints because they directly affect whether a task is urgent and realistically achievable in a single day.
+The ranking logic favors incomplete tasks first, then higher priority, then earlier due times, and finally shorter duration as a tie-breaker.
 
 **b. Tradeoffs**
 
@@ -48,13 +49,15 @@ This is reasonable for the current PawPal+ scope because it keeps the algorithm 
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used Copilot Chat for class design brainstorming, method naming, and implementation sequencing.
+I used inline assistance to speed up repetitive code tasks like docstrings and test skeleton generation.
+The most helpful prompts were concrete and scoped, such as "add filtering by pet and completion status" and "design a lightweight conflict warning method."
+Using separate chat sessions by phase (design, implementation, testing, polish) helped me keep requirements isolated and reduced context mixing when making decisions.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+I rejected a more complex conflict-resolution approach that tried to optimize overlapping durations with extra state tracking because it reduced readability for this project scope.
+I kept exact-time conflict warnings instead and verified correctness by creating same-time tasks in the CLI demo and by adding an automated conflict-detection pytest case.
 
 ---
 
@@ -62,13 +65,15 @@ This is reasonable for the current PawPal+ scope because it keeps the algorithm 
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+I ran: python -m pytest
+
+I tested task completion state changes, adding tasks to pets, chronological sorting, recurring task creation after completion, filtering correctness, and conflict warning detection.
+These tests were important because they validate both basic class behavior and the algorithmic features that make the scheduler useful.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+My confidence level is 4/5 based on repeatable demo outputs and passing automated tests.
+With more time, I would test overlapping-duration conflicts (not just exact timestamps), timezone behavior, very large task sets, and mixed recurrence rules across multiple weeks.
 
 ---
 
@@ -76,12 +81,12 @@ This is reasonable for the current PawPal+ scope because it keeps the algorithm 
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I am most satisfied with the clean separation between data models (`Owner`, `Pet`, `Task`) and the decision layer (`Scheduler`), which made iteration and testing straightforward.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+In another iteration, I would add persistent storage (JSON/CSV), richer overlap-aware conflict detection, and stronger UI controls for marking tasks complete and viewing recurring history.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+My key takeaway is that AI is most effective when I stay the lead architect: define constraints first, ask focused questions, verify outputs with tests, and accept only suggestions that improve both correctness and maintainability.
