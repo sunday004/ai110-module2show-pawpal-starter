@@ -10,39 +10,23 @@ Core user actions for PawPal+:
 
 **a. Initial design**
 
-Step 2: List the building blocks
+My initial UML design used four main classes: `Owner`, `Pet`, `Task`, and `Scheduler`.
 
-- `OwnerProfile`
-	Attributes: owner_name, available_minutes_per_day, preferred_task_order, medication_reminder_preference.
-	Methods: update_preferences(), set_daily_availability(), summarize_preferences().
+- `Owner` holds owner-specific planning inputs (daily time available, preferred task order, reminder settings).
+- `Pet` stores pet profile details that affect care planning (species, age, energy level, and special needs).
+- `Task` represents individual care activities (walk, feeding, meds, enrichment) with duration, priority, and timing metadata.
+- `Scheduler` is responsible for ranking tasks, resolving conflicts, building the daily plan, and explaining scheduling choices.
 
-- `PetProfile`
-	Attributes: pet_name, species, age, energy_level, special_needs.
-	Methods: update_pet_info(), get_care_needs(), summarize_pet().
-
-- `CareTask`
-	Attributes: task_name, category, duration_minutes, priority, due_window, frequency, notes.
-	Methods: edit_task(), mark_completed(), is_due_today(), estimate_urgency_score().
-
-- `DailyConstraints`
-	Attributes: date, total_available_minutes, blocked_time_windows, max_tasks, owner_preferences.
-	Methods: can_fit_task(), remaining_time(), apply_preference_rules().
-
-- `Scheduler`
-	Attributes: task_list, constraints, scoring_weights.
-	Methods: rank_tasks(), build_daily_plan(), resolve_conflicts(), explain_selection_logic().
-
-- `DailyPlan`
-	Attributes: date, scheduled_tasks, unscheduled_tasks, total_scheduled_minutes, explanation.
-	Methods: add_scheduled_task(), remove_task(), generate_summary(), to_display_rows().
-
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+This design separates data objects (`Pet`, `Task`) from coordination logic (`Scheduler`) so the planning behavior can evolve without overloading the UI layer.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Yes. After reviewing `pawpal_system.py`, I made relationship-focused updates:
+
+- I added an explicit `Owner -> Pet` relationship in code by giving `Owner` a `pets` collection and adding `add_pet()` / `remove_pet()` method stubs.
+- I updated `Scheduler` so it takes `owner`, `pets`, and `task_list` in its constructor instead of only `task_list`.
+
+I made these changes to reduce hidden coupling and avoid a future bottleneck where scheduling logic would need owner preferences and pet context but not receive them directly. This keeps dependencies explicit and makes the system easier to test.
 
 ---
 
